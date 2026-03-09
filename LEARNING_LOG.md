@@ -2,7 +2,7 @@
 
 **Chat Title:** *Vibe Coding a Secure Python & SQLite Knowledge Base*
 **Date:** March 2026
-**Project Status:** Backend v1.0 Complete & Pushed to GitHub
+**Project Status:** Backend v1.1 Complete (CLI Integrated)
 
 ---
 
@@ -10,7 +10,7 @@
 
 The project follows a "Thin Slice" development pattern, establishing a functional connection between a Python logic layer and a local SQLite database.
 
-* **Logic Layer:** `vault.py` handles database initialization and CRUD (Create, Read, Update, Delete) operations.
+* **Logic Layer:** `vault.py` handles database initialization, CRUD operations, and CLI interaction.
 * **Data Layer:** `snippets.db` (SQLite) stores snippets with a schema consisting of `id`, `title`, `content`, and `category`.
 
 ---
@@ -41,34 +41,44 @@ We implemented **Parameterized Queries** to prevent malicious code execution.
 
 ### The "Cake and Eat it Too" Pattern
 
-We refactored the `add_snippet` function to achieve both maximum security and high readability:
+We refactored the `add_snippet` function to achieve both maximum security and high readability using dict inputs:
 
 ```python
 # Named Placeholder Pattern
 query = "INSERT INTO snippets (title) VALUES (:title)"
 # Passing a Dictionary directly
 conn.execute(query, {"title": "My Snippet"})
-
 ```
 
 ### The `sqlite3.Row` Factory
 
-By setting `conn.row_factory = sqlite3.Row`, we enabled the ability to treat database rows like Python dictionaries. This prevents "Index Magic" (where you have to remember that `row[2]` is the category) and makes the code self-documenting.
+By setting `conn.row_factory = sqlite3.Row`, we enabled the ability to treat database rows like Python dictionaries. This prevents "Index Magic" and makes the code self-documenting.
 
 ---
 
-## 4. DevOps & SDLC Workflow
+## 4. CLI Interaction (New)
 
-* **Version Control:** Initialized `git` with a specific focus on the `.gitignore` file to protect the database (`*.db`) and environment files.
-* **Branching:** Used `git init -b main` to align with modern GitHub standards.
-* **Documentation:** Created an AI-augmented `README.md` to serve as a professional landing page for the repository.
+We upgraded the script to support command-line arguments using `sys.argv`, allowing for seamless terminal interaction.
+
+* **Capture Arguments:** `sys.argv` extracts words passed after `python vault.py`.
+* **Flow Control:** If the first argument is `add`, the script expects Title, Content, and Category. Otherwise, it defaults to listing all contents.
+* **Error Handling:** Added checks for missing arguments and empty vault states.
+
+**Add Command:** `python vault.py add "Title" "Content" "Category"`
+**List Command:** `python vault.py`
 
 ---
 
-## 5. Future Roadmap
+## 5. DevOps & SDLC Workflow
+
+* **Environment:** Built in a Windows PowerShell environment, using local Python 3 and SQLite.
+* **Verification:** Implemented a terminal-based testing loop to confirm DB persistence after script termination.
+
+---
+
+## 6. Future Roadmap
 
 1. **Search Logic:** Implement `LIKE` operators with `%` wildcards for keyword discovery.
-2. **API Layer:** Wrap the logic in **FastAPI** to serve data to the web.
-3. **Frontend:** Build a **Next.js 15** dashboard to visualize the snippets.
-4. **Agentic AI:** Integrate **LangGraph** to allow AI agents to query the vault as a "tool."
-
+2. **Delete/Update Commands:** Expand the CLI to manage existing snippets.
+3. **API Layer:** Wrap the logic in **FastAPI**.
+4. **Agentic AI:** Integrate **LangGraph** to allow AI agents to query the vault.

@@ -1,17 +1,19 @@
 import sqlite3
+import sys  # Required to read terminal arguments
 import os
 
 # Database configuration
 DB_NAME = 'snippets.db'
 
 def get_db_connection():
-    """Establishes a connection to the SQLite database and returns the connection object."""
+    """Establishes a connection to the SQLite database."""
     conn = sqlite3.connect(DB_NAME)
+    # Allows accessing columns by name (e.g., row['title'])
     conn.row_factory = sqlite3.Row
     return conn
 
 def init_db():
-    """Initializes the database by creating the snippets table if it doesn't already exist."""
+    """Initializes the database schema."""
     with get_db_connection() as conn:
         conn.execute('''
             CREATE TABLE IF NOT EXISTS snippets (
@@ -22,58 +24,53 @@ def init_db():
             )
         ''')
         conn.commit()
-    print(f"Database initialized: {DB_NAME}")
 
 def add_snippet(snippet_data: dict):
-    """
-    Adds a new learning snippet using a dictionary and named placeholders.
-    This is highly secure and easy to read.
-    """
-    # 1. THE NAMED QUERY: Instead of ?, we use labels like :title.
-    # This makes the SQL command self-documenting.
+    """Adds a new learning snippet using a dictionary with named placeholders."""
     query = '''
         INSERT INTO snippets (title, content, category) 
         VALUES (:title, :content, :category)
     '''
-    
     with get_db_connection() as conn:
-        # 2. THE MAPPING: We pass the dict directly. 
-        # SQLite automatically maps 'title' in the dict to :title in the query.
         conn.execute(query, snippet_data)
         conn.commit()
-    
-    # Using .get() is a safe way to access dict keys without risking a crash
-    print(f"Snippet added: {snippet_data.get('title')}")
+    print(f"✅ Snippet added: {snippet_data.get('title')}")
 
 def get_all_snippets() -> list[dict]:
-    """Fetches all snippets and returns them as a list of dictionaries."""
+    """Fetches all snippets from the database."""
     with get_db_connection() as conn:
         rows = conn.execute('SELECT id, title, content, category FROM snippets').fetchall()
         return [dict(row) for row in rows]
 
+# --- CLI INTERFACE ---
 if __name__ == "__main__":
     init_db()
 
-    # 3. DICTIONARY USAGE: This is how your data will look in Next.js or an API.
-    print("\n--- Adding Sample Snippets via Dictionaries ---")
+    # sys.argv captures arguments passed from the terminal
+    args = sys.argv
+
+    # Check for 'add' command
+    if len(args) > 1 and args[1] == "add":
+        # Expecting: vault.py add "Title" "Content" "Category"
+        if len(args) > 4:
+            new_snippet = {
+                "title": args[2],
+                "content": args[3],
+                "category": args[4]
+            }
+            add_snippet(new_snippet)
+        else:
+            print("❌ Error: Missing information.")
+            print("Usage: python vault.py add \"Title\" \"Content\" \"Category\"")
     
-    # We can create a list of dictionaries to process
-    samples = [
-        {
-            "title": "Named Style", 
-            "content": "Uses :label in SQL for better clarity.", 
-            "category": "Python"
-        },
-        {
-            "title": "Dictionary Input", 
-            "content": "Passing dicts to execute() is secure and clean.", 
-            "category": "Data"
-        }
-    ]
-
-    for item in samples:
-        add_snippet(item)
-
-    print("\n--- Current Vault Contents ---")
-    for s in get_all_snippets():
-        print(f"[{s['category']}] {s['id']}: {s['title']}")
+    else:
+        # Default behavior: List all snippets
+        snippets = get_all_snippets()
+        if not snippets:
+            print("\n📭 The vault is currently empty. Add your first snippet!")
+            print("Usage: python vault.py add \"Title\" \"Content\" \"Category\"")
+        else:
+            print(f"\n--- Current Vault Contents ({len(snippets)} snippets) ---")
+            for s in snippets:
+                print(f"[{s['category']}] {s['id']}: {s['title']}")
+                print(f"   {s['content']}\n")
